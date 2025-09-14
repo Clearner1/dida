@@ -53,6 +53,7 @@ public class AuthController {
 //        this.currentUserService = currentUserService;
 //    }
 
+
     @GetMapping("/status")
     public Map<String, Object> status() {
         String userId = currentUserService.currentUserId();

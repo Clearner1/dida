@@ -1,4 +1,4 @@
-package com.yzr.dida.lib;
+package com.yzr.dida.utils;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

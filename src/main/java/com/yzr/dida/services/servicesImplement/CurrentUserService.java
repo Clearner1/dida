@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 public class CurrentUserService implements ICurrentUserService {
     // Placeholder: integrate with real auth later
     public String currentUserId() {
-        return "user-1";
+        return "user-zane";
     }
 }
 

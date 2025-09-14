@@ -1,4 +1,4 @@
-package com.yzr.dida.domain.dataobject;
+package com.yzr.dida.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Data
 @TableName("authorization_connection")
 public class AuthorizationConnectionDO{
+    public enum Scope { READ, READ_WRITE }
     @TableId("id")
     private String id;
 

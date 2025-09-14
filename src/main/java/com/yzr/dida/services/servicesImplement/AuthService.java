@@ -1,8 +1,7 @@
 package com.yzr.dida.services.servicesImplement;
 
-import com.yzr.dida.lib.EncryptionService;
-import com.yzr.dida.models.AuthorizationConnection;
-import com.yzr.dida.repositories.AuthorizationConnectionRepository;
+import com.yzr.dida.utils.EncryptionService;
+import com.yzr.dida.entity.AuthorizationConnectionDO;
 import com.yzr.dida.services.IAuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -21,13 +20,13 @@ import static com.yzr.dida.utils.AuthUtils.url;
 @Service
 public class AuthService implements IAuthService {
 
-    private final AuthorizationConnectionRepository repo;
+    private final AuthorizationConnectionService authConnectionService;
     private final EncryptionService encryptionService;
     private final RestTemplate http;
 
-    public AuthService(AuthorizationConnectionRepository repo,
+    public AuthService(AuthorizationConnectionService authConnectionService,
                        EncryptionService encryptionService) {
-        this.repo = repo;
+        this.authConnectionService = authConnectionService;
         this.encryptionService = encryptionService;
         this.http = new RestTemplate();
     }
@@ -51,7 +50,7 @@ public class AuthService implements IAuthService {
         String state = UUID.randomUUID().toString();
         String didaScope = scopeValue;
         // Persist pending state
-        repo.upsertState(userId, "dida", didaScope, state);
+        authConnectionService.upsertState(userId, "dida", didaScope, state);
 
         String scope = url(didaScope);
         String cid = url(clientId);
@@ -64,7 +63,7 @@ public class AuthService implements IAuthService {
     }
 
     public void handleCallback(String userId, String code, String state) {
-        var pending = repo.findByUserAndState(userId, "dida", state)
+        var pending = authConnectionService.findByUserAndState(userId, "dida", state)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired state"));
 
         // Exchange code for token
@@ -72,9 +71,10 @@ public class AuthService implements IAuthService {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         String basic = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
         headers.add(HttpHeaders.AUTHORIZATION, "Basic " + basic);
+        AuthorizationConnectionDO.Scope pendingScopeEnum = authConnectionService.getScopeEnum(pending.getScope());
         String body = "code=" + url(code)
                 + "&grant_type=authorization_code"
-                + "&scope=" + url(scopeKey(pending.getScope()))
+                + "&scope=" + url(scopeKey(pendingScopeEnum))
                 + "&redirect_uri=" + url(redirectUri);
         HttpEntity<String> req = new HttpEntity<>(body, headers);
 
@@ -94,23 +94,23 @@ public class AuthService implements IAuthService {
             } catch (NumberFormatException ignore) { }
         }
 
-        repo.saveToken(userId, "dida", scopeKey(pending.getScope()), enc, expiresAt);
+        authConnectionService.saveToken(userId, "dida", scopeKey(pendingScopeEnum), enc, expiresAt);
     }
 
     public Map<String, Object> status(String userId) {
-        return repo.status(userId, "dida");
+        return authConnectionService.status(userId, "dida");
     }
 
     public void disconnect(String userId) {
-        repo.disconnect(userId, "dida");
+        authConnectionService.disconnect(userId, "dida");
     }
 
 //    private static String url(String s) {
 //        return URLEncoder.encode(s == null ? "" : s, StandardCharsets.UTF_8);
 //    }
 
-    private String scopeKey(AuthorizationConnection.Scope scope) {
-        return scope == AuthorizationConnection.Scope.READ_WRITE ? "tasks:read tasks:write" : "tasks:read";
+    private String scopeKey(AuthorizationConnectionDO.Scope scope) {
+        return scope == AuthorizationConnectionDO.Scope.READ_WRITE ? "tasks:read tasks:write" : "tasks:read";
     }
 }
 

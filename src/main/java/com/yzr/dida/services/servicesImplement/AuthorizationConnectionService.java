@@ -1,11 +1,10 @@
-package com.yzr.dida.repositories;
+package com.yzr.dida.services.servicesImplement;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.yzr.dida.mappers.AuthorizationConnectionMapper;
-import com.yzr.dida.domain.dataobject.AuthorizationConnectionDO;
-import com.yzr.dida.models.AuthorizationConnection;
-import org.springframework.stereotype.Repository;
+import com.yzr.dida.entity.AuthorizationConnectionDO;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -14,11 +13,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@Repository
-public class AuthorizationConnectionRepository {
+@Service
+public class AuthorizationConnectionService {
     private final AuthorizationConnectionMapper mapper;
 
-    public AuthorizationConnectionRepository(AuthorizationConnectionMapper mapper) {
+    public AuthorizationConnectionService(AuthorizationConnectionMapper mapper) {
         this.mapper = mapper;
     }
 
@@ -51,22 +50,11 @@ public class AuthorizationConnectionRepository {
         }
     }
 
-    public Optional<AuthorizationConnection> findByUserAndState(String userId, String provider, String stateNonce) {
+    public Optional<AuthorizationConnectionDO> findByUserAndState(String userId, String provider, String stateNonce) {
         QueryWrapper<AuthorizationConnectionDO> qw = new QueryWrapper<>();
         qw.eq("user_id", userId).eq("provider", provider).eq("state_nonce", stateNonce).last("LIMIT 1");
         AuthorizationConnectionDO rec = mapper.selectOne(qw);
-        if (rec == null) return Optional.empty();
-        AuthorizationConnection ac = new AuthorizationConnection();
-        ac.setId(rec.getId());
-        ac.setUserId(rec.getUserId());
-        ac.setProvider(rec.getProvider());
-        ac.setScope("read_write".equalsIgnoreCase(rec.getScope()) ? AuthorizationConnection.Scope.READ_WRITE : AuthorizationConnection.Scope.READ);
-        ac.setAccessTokenEnc(rec.getAccessTokenEnc());
-        ac.setExpiresAt(rec.getExpiresAt() == null ? null : rec.getExpiresAt().toInstant(ZoneOffset.UTC));
-        ac.setCreatedAt(rec.getCreatedAt() == null ? null : rec.getCreatedAt().toInstant(ZoneOffset.UTC));
-        ac.setRevokedAt(rec.getRevokedAt() == null ? null : rec.getRevokedAt().toInstant(ZoneOffset.UTC));
-        ac.setStateNonce(rec.getStateNonce());
-        return Optional.of(ac);
+        return Optional.ofNullable(rec);
     }
 
     public void saveToken(String userId, String provider, String scope, String encToken, Instant expiresAt) {
@@ -102,5 +90,9 @@ public class AuthorizationConnectionRepository {
 
     private String scopeKey(String scope) {
         return ("tasks:read tasks:write".equalsIgnoreCase(scope) || "read_write".equalsIgnoreCase(scope)) ? "read_write" : "read";
+    }
+
+    public AuthorizationConnectionDO.Scope getScopeEnum(String scopeString) {
+        return "read_write".equalsIgnoreCase(scopeString) ? AuthorizationConnectionDO.Scope.READ_WRITE : AuthorizationConnectionDO.Scope.READ;
     }
 }
