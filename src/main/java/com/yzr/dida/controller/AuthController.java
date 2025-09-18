@@ -60,13 +60,22 @@ public class AuthController {
         return authService.status(userId);
     }
 
+    /**
+     * GET http://localhost:8080/auth/dida/connect?scope=read
+     * GET http://localhost:8080/auth/dida/connect?scope=write
+     * @param scope 接受一个参数
+     * @return
+     */
     @GetMapping("/connect")
     public ResponseEntity<Void> connect(@RequestParam(name = "scope", defaultValue = "read") String scope) {
+//       获取userId：zane001
         String userId = currentUserService.currentUserId();
+//       设置 dida 数据权限范围，如果不是 read，则包括了读写
         String didaScope = "read".equalsIgnoreCase(scope) ? "tasks:read" : "tasks:read tasks:write";
         String authorizeUrl = authService.buildAuthorizeUrl(userId, didaScope);
         MultiValueMap<String, String> headers = new HttpHeaders();
         headers.add(HttpHeaders.LOCATION, authorizeUrl);
+//      重定向到：http://localhost:8080/auth/dida/callback，也就是下一个地址中
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 
@@ -99,4 +108,6 @@ public class AuthController {
  *  1. 在运行时才会出现问题
  *  构造函数注入在对象创建的时候就会报问题，如果没有这个对象直接报错
  *  2. 构造器注入，可以对`对象`使用final，保证线程运行的安全
+ *    https://dida365.com/oauth/authorize?scope=tasks%3Aread&client_id=YOUR_CLIENT_ID&state=uuid-string&re
+ *   direct_uri=http%3A//localhost%3A8080/oauth/dida/callback&response_type=code
  */

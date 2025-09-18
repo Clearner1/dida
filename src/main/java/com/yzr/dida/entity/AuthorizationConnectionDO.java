@@ -20,7 +20,8 @@ public class AuthorizationConnectionDO{
     @TableField("provider")
     private String provider;
 
-    @TableField("scope")
+    // scope是 mysql 保留字，所以需要加引号
+    @TableField(value = "`scope`")
     private String scope; // read | read_write
 
     @TableField("access_token_enc")

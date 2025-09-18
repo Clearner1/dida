@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS authorization_connection (
   user_id VARCHAR(128) NOT NULL,
   provider VARCHAR(32) NOT NULL,
   scope VARCHAR(16) NOT NULL,
-  access_token_enc TEXT NOT NULL,
+  access_token_enc TEXT NULL,
   expires_at TIMESTAMP NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   revoked_at TIMESTAMP NULL,

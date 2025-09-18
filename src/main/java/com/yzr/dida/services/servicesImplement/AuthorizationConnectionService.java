@@ -35,6 +35,8 @@ public class AuthorizationConnectionService {
             rec.setAccessTokenEnc(null);
             rec.setExpiresAt(null);
             rec.setStateNonce(stateNonce);
+            rec.setCreatedAt(LocalDateTime.now());
+            rec.setRevokedAt(LocalDateTime.now());
             mapper.insert(rec);
             return id;
         } else {

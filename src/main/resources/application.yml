@@ -2,12 +2,14 @@ spring:
   application:
     name: dida
   datasource:
-    url: jdbc:mysql://139.155.108.161:3306/Dida?useSSL=false&serverTimezone=UTC&characterEncoding=utf8mb4
+    url: jdbc:mysql://139.155.108.161:3306/dida?allowPublicKeyRetrieval=true&useSSL=false
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.yzr.dida.entity
   configuration:
     map-underscore-to-camel-case: true
   global-config:
@@ -19,9 +21,18 @@ mybatis-plus:
 dida:
   auth-base: https://dida365.com
   api-base: https://api.dida365.com
-  client-id: YOUR_CLIENT_ID
-  client-secret: YOUR_CLIENT_SECRET
-  redirect-uri: http://localhost:8080/oauth/dida/callback
+  client-id: ${DIDA_CLIENT_ID:KqyD70dlxCuQ6w4Jk6}
+  client-secret: ${DIDA_CLIENT_SECRET:&PcR#948!dj7N1)EU4h+NWZCA@1mwnh$}
+# 这个URL必须在滴答清单开发者平台预先注册，否则OAuth授权会被拒绝！
+  redirect-uri: http://localhost:8080/auth/dida/callback
+  oauth:
+    authorize-endpoint: https://dida365.com/oauth/authorize
+    token-endpoint: https://dida365.com/oauth/token
+
 
 server:
   port: 8080
+
+security:
+  encryption:
+    key: ${ENCRYPTION_KEY:SGVsbG9Xb3JsZDEyMzQ1Ng==}

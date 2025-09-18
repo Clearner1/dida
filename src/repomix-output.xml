@@ -1,0 +1,708 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+main/
+  java/
+    com/
+      yzr/
+        dida/
+          controller/
+            AuthController.java
+          entity/
+            AuthorizationConnectionDO.java
+          mappers/
+            AuthorizationConnectionMapper.java
+          services/
+            servicesImplement/
+              AuthorizationConnectionService.java
+              AuthService.java
+              CurrentUserService.java
+            IAuthService.java
+            ICurrentUserService.java
+          utils/
+            AuthUtils.java
+            EncryptionService.java
+          DidaApplication.java
+  resources/
+    application.yml
+    schema.sql
+test/
+  java/
+    com/
+      yzr/
+        dida/
+          DidaApplicationTests.java
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="main/java/com/yzr/dida/controller/AuthController.java">
+package com.yzr.dida.controller;
+
+import com.yzr.dida.services.servicesImplement.AuthService;
+import com.yzr.dida.services.servicesImplement.CurrentUserService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/auth/dida")
+public class AuthController {
+
+////    认证相关业务逻辑
+//    private final AuthService authService;
+////    管理当前登录用户的信息和状态
+//    private final CurrentUserService currentUserService;
+
+//    //    认证相关业务逻辑
+//    @Autowired
+//    private AuthService authService;
+//    //    管理当前登录用户的信息和状态
+//    @Autowired
+//    private CurrentUserService currentUserService;
+//    构造函数注入
+//    public AuthController(AuthService authService, CurrentUserService currentUserService) {
+//        this.authService = authService;
+//        this.currentUserService = currentUserService;
+//    }
+//        --------------------------------------------------------------------------------------
+//        构造器注入
+    private  final AuthService authService;
+    private  final CurrentUserService currentUserService;
+
+    public AuthController(AuthService authService, CurrentUserService currentUserService) {
+        this.authService = authService;
+        this.currentUserService = currentUserService;
+    }
+
+    /**
+     * 其他方法进行依赖注入：1，字段注入 2. 构造器注入 3. setter方法注入
+     * 1. Setter方法注入
+     * 需要@Autowired
+     * 需要将对象设置为非final
+     * @return
+     */
+//    @Autowired
+//    public void setAuthController(AuthService authService, CurrentUserService currentUserService) {
+//        this.authService = authService;
+//        this.currentUserService = currentUserService;
+//    }
+
+
+    @GetMapping("/status")
+    public Map<String, Object> status() {
+        String userId = currentUserService.currentUserId();
+        return authService.status(userId);
+    }
+
+    /**
+     * GET http://localhost:8080/auth/dida/connect?scope=read
+     * GET http://localhost:8080/auth/dida/connect?scope=write
+     * @param scope 接受一个参数
+     * @return
+     */
+    @GetMapping("/connect")
+    public ResponseEntity<Void> connect(@RequestParam(name = "scope", defaultValue = "read") String scope) {
+//       获取userId：zane001
+        String userId = currentUserService.currentUserId();
+//       设置 dida 数据权限范围，如果不是 read，则包括了读写
+        String didaScope = "read".equalsIgnoreCase(scope) ? "tasks:read" : "tasks:read tasks:write";
+        String authorizeUrl = authService.buildAuthorizeUrl(userId, didaScope);
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        headers.add(HttpHeaders.LOCATION, authorizeUrl);
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
+    @GetMapping("/callback")
+    public ResponseEntity<Void> callback(@RequestParam("code") String code,
+                                         @RequestParam("state") String state) {
+        String userId = currentUserService.currentUserId();
+        authService.handleCallback(userId, code, state);
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        headers.add(HttpHeaders.LOCATION, "/settings/integrations?dida=connected");
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
+    @PostMapping("/disconnect")
+    public ResponseEntity<Void> disconnect() {
+        String userId = currentUserService.currentUserId();
+        authService.disconnect(userId);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+
+/**
+ * Spring容器 → 注入依赖 → AuthController
+ * 字段注入的问题：
+ * 什么是字段注入？
+ *     @Autowired
+ *     private CurrentUserService currentUserService;
+ *  SpringBoot不建议字段注入的原因：
+ *  1. 在运行时才会出现问题
+ *  构造函数注入在对象创建的时候就会报问题，如果没有这个对象直接报错
+ *  2. 构造器注入，可以对`对象`使用final，保证线程运行的安全
+ *    https://dida365.com/oauth/authorize?scope=tasks%3Aread&client_id=YOUR_CLIENT_ID&state=uuid-string&re
+ *   direct_uri=http%3A//localhost%3A8080/oauth/dida/callback&response_type=code
+ */
+</file>
+
+<file path="main/java/com/yzr/dida/entity/AuthorizationConnectionDO.java">
+package com.yzr.dida.entity;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+@TableName("authorization_connection")
+public class AuthorizationConnectionDO{
+    public enum Scope { READ, READ_WRITE }
+    @TableId("id")
+    private String id;
+
+    @TableField("user_id")
+    private String userId;
+
+    @TableField("provider")
+    private String provider;
+
+    @TableField("scope")
+    private String scope; // read | read_write
+
+    @TableField("access_token_enc")
+    private String accessTokenEnc;
+
+    @TableField("expires_at")
+    private LocalDateTime expiresAt;
+
+    @TableField("created_at")
+    private LocalDateTime createdAt;
+
+    @TableField("revoked_at")
+    private LocalDateTime revokedAt;
+
+    @TableField("state_nonce")
+    private String stateNonce;
+}
+
+/**
+ * | 概念                             | 作用      | 和数据库关系       | 用途                                   |
+ * | ------------------------------ | ------- | ------------ | ------------------------------------ |
+ * | **DO** (Data Object)           | 数据库实体对象 | **直接对应数据库表** | DAO 层使用，CRUD                         |
+ * | **DTO** (Data Transfer Object) | 数据传输对象  | 字段来自 DO，但更灵活 | 系统内部数据传输（Controller ↔ Service ↔ DAO） |
+ * | **VO** (View Object)           | 视图对象    | 与数据库关系不大     | Controller 返回前端的数据模型                 |
+ */
+</file>
+
+<file path="main/java/com/yzr/dida/mappers/AuthorizationConnectionMapper.java">
+package com.yzr.dida.mappers;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.yzr.dida.entity.AuthorizationConnectionDO;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface AuthorizationConnectionMapper extends BaseMapper<AuthorizationConnectionDO> {}
+</file>
+
+<file path="main/java/com/yzr/dida/services/servicesImplement/AuthorizationConnectionService.java">
+package com.yzr.dida.services.servicesImplement;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.yzr.dida.mappers.AuthorizationConnectionMapper;
+import com.yzr.dida.entity.AuthorizationConnectionDO;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class AuthorizationConnectionService {
+    private final AuthorizationConnectionMapper mapper;
+
+    public AuthorizationConnectionService(AuthorizationConnectionMapper mapper) {
+        this.mapper = mapper;
+    }
+
+    public String upsertState(String userId, String provider, String scope, String stateNonce) {
+        QueryWrapper<AuthorizationConnectionDO> qw = new QueryWrapper<>();
+        qw.eq("user_id", userId).eq("provider", provider);
+        AuthorizationConnectionDO existing = mapper.selectOne(qw);
+        if (existing == null) {
+            AuthorizationConnectionDO rec = new AuthorizationConnectionDO();
+            String id = UUID.randomUUID().toString();
+            rec.setId(id);
+            rec.setUserId(userId);
+            rec.setProvider(provider);
+            rec.setScope(scopeKey(scope));
+            rec.setAccessTokenEnc(null);
+            rec.setExpiresAt(null);
+            rec.setStateNonce(stateNonce);
+            mapper.insert(rec);
+            return id;
+        } else {
+            UpdateWrapper<AuthorizationConnectionDO> uw = new UpdateWrapper<>();
+            uw.eq("user_id", userId).eq("provider", provider)
+              .set("scope", scopeKey(scope))
+              .set("access_token_enc", null)
+              .set("expires_at", null)
+              .set("revoked_at", null)
+              .set("state_nonce", stateNonce);
+            mapper.update(null, uw);
+            return existing.getId();
+        }
+    }
+
+    public Optional<AuthorizationConnectionDO> findByUserAndState(String userId, String provider, String stateNonce) {
+        QueryWrapper<AuthorizationConnectionDO> qw = new QueryWrapper<>();
+        qw.eq("user_id", userId).eq("provider", provider).eq("state_nonce", stateNonce).last("LIMIT 1");
+        AuthorizationConnectionDO rec = mapper.selectOne(qw);
+        return Optional.ofNullable(rec);
+    }
+
+    public void saveToken(String userId, String provider, String scope, String encToken, Instant expiresAt) {
+        UpdateWrapper<AuthorizationConnectionDO> uw = new UpdateWrapper<>();
+        uw.eq("user_id", userId).eq("provider", provider)
+          .set("access_token_enc", encToken)
+          .set("expires_at", expiresAt == null ? null : LocalDateTime.ofInstant(expiresAt, ZoneOffset.UTC))
+          .set("scope", scopeKey(scope))
+          .set("state_nonce", null);
+        mapper.update(null, uw);
+    }
+
+    public void disconnect(String userId, String provider) {
+        UpdateWrapper<AuthorizationConnectionDO> uw = new UpdateWrapper<>();
+        uw.eq("user_id", userId).eq("provider", provider)
+          .set("revoked_at", LocalDateTime.now(ZoneOffset.UTC))
+          .set("access_token_enc", null)
+          .set("expires_at", null)
+          .set("state_nonce", null);
+        mapper.update(null, uw);
+    }
+
+    public Map<String, Object> status(String userId, String provider) {
+        QueryWrapper<AuthorizationConnectionDO> qw = new QueryWrapper<>();
+        qw.select("access_token_enc", "scope").eq("user_id", userId).eq("provider", provider).last("LIMIT 1");
+        AuthorizationConnectionDO rec = mapper.selectOne(qw);
+        if (rec == null) return Map.of("connected", false, "scope", null);
+        return Map.of(
+                "connected", rec.getAccessTokenEnc() != null,
+                "scope", rec.getScope()
+        );
+    }
+
+    private String scopeKey(String scope) {
+        return ("tasks:read tasks:write".equalsIgnoreCase(scope) || "read_write".equalsIgnoreCase(scope)) ? "read_write" : "read";
+    }
+
+    public AuthorizationConnectionDO.Scope getScopeEnum(String scopeString) {
+        return "read_write".equalsIgnoreCase(scopeString) ? AuthorizationConnectionDO.Scope.READ_WRITE : AuthorizationConnectionDO.Scope.READ;
+    }
+}
+</file>
+
+<file path="main/java/com/yzr/dida/services/servicesImplement/AuthService.java">
+package com.yzr.dida.services.servicesImplement;
+
+import com.yzr.dida.utils.EncryptionService;
+import com.yzr.dida.entity.AuthorizationConnectionDO;
+import com.yzr.dida.services.IAuthService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Map;
+import java.util.UUID;
+
+import static com.yzr.dida.utils.AuthUtils.url;
+
+@Service
+public class AuthService implements IAuthService {
+
+    private final AuthorizationConnectionService authConnectionService;
+    private final EncryptionService encryptionService;
+    private final RestTemplate http;
+
+    public AuthService(AuthorizationConnectionService authConnectionService,
+                       EncryptionService encryptionService) {
+        this.authConnectionService = authConnectionService;
+        this.encryptionService = encryptionService;
+        this.http = new RestTemplate();
+    }
+
+    //在 yml 文件中配置，使用@Value 来指代是哪一个配置文件中的属性
+    @Value("${dida.client-id:}")
+    private String clientId;
+
+    @Value("${dida.client-secret:}")
+    private String clientSecret;
+
+    @Value("${dida.redirect-uri:}")
+    private String redirectUri;
+
+    @Value("${dida.oauth.authorize-endpoint:https://dida365.com/oauth/authorize}")
+    private String authorizeEndpoint;
+
+    @Value("${dida.oauth.token-endpoint:https://dida365.com/oauth/token}")
+    private String tokenEndpoint;
+
+    public String buildAuthorizeUrl(String userId, String scopeValue) {
+//        滴答 API 需要生成一个恒定的 state
+        String state = UUID.randomUUID().toString();
+        String didaScope = scopeValue;
+        // 向数据库插入一条关于谁请求了读写权限的一条记录
+        authConnectionService.upsertState(userId, "dida", didaScope, state);
+
+        String scope = url(didaScope);
+        String cid = url(clientId);
+        String ru = url(redirectUri);
+//      https://dida365.com/oauth/authorize?scope=read&client_id=client_id&state=state&redirect_uri=redirect_uri&response_type=code
+        return authorizeEndpoint + "?scope=" + scope +
+                "&client_id=" + cid +
+                "&state=" + state +
+                "&redirect_uri=" + ru +
+                "&response_type=code";
+    }
+
+    public void handleCallback(String userId, String code, String state) {
+        var pending = authConnectionService.findByUserAndState(userId, "dida", state)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired state"));
+
+        // Exchange code for token
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        String basic = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
+        headers.add(HttpHeaders.AUTHORIZATION, "Basic " + basic);
+        AuthorizationConnectionDO.Scope pendingScopeEnum = authConnectionService.getScopeEnum(pending.getScope());
+        String body = "code=" + url(code)
+                + "&grant_type=authorization_code"
+                + "&scope=" + url(scopeKey(pendingScopeEnum))
+                + "&redirect_uri=" + url(redirectUri);
+        HttpEntity<String> req = new HttpEntity<>(body, headers);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resp = http.postForObject(tokenEndpoint, req, Map.class);
+        if (resp == null || !resp.containsKey("access_token")) {
+            throw new IllegalStateException("Token exchange failed");
+        }
+        String accessToken = String.valueOf(resp.get("access_token"));
+        String enc = encryptionService.encrypt(accessToken);
+
+        Instant expiresAt = null;
+        if (resp.containsKey("expires_in")) {
+            try {
+                long seconds = Long.parseLong(String.valueOf(resp.get("expires_in")));
+                expiresAt = Instant.now().plusSeconds(seconds);
+            } catch (NumberFormatException ignore) { }
+        }
+
+        authConnectionService.saveToken(userId, "dida", scopeKey(pendingScopeEnum), enc, expiresAt);
+    }
+
+    public Map<String, Object> status(String userId) {
+        return authConnectionService.status(userId, "dida");
+    }
+
+    public void disconnect(String userId) {
+        authConnectionService.disconnect(userId, "dida");
+    }
+
+//    private static String url(String s) {
+//        return URLEncoder.encode(s == null ? "" : s, StandardCharsets.UTF_8);
+//    }
+
+    private String scopeKey(AuthorizationConnectionDO.Scope scope) {
+        return scope == AuthorizationConnectionDO.Scope.READ_WRITE ? "tasks:read tasks:write" : "tasks:read";
+    }
+}
+
+/**
+ * static, 创建类就可以直接使用
+ * 在内存中只有一份
+ */
+</file>
+
+<file path="main/java/com/yzr/dida/services/servicesImplement/CurrentUserService.java">
+package com.yzr.dida.services.servicesImplement;
+
+import com.yzr.dida.services.ICurrentUserService;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CurrentUserService implements ICurrentUserService {
+    // Placeholder: integrate with real auth later
+    public String currentUserId() {
+        return "user-zane";
+    }
+}
+</file>
+
+<file path="main/java/com/yzr/dida/services/IAuthService.java">
+package com.yzr.dida.services;
+
+import java.util.Map;
+
+public interface IAuthService {
+    String buildAuthorizeUrl(String userId, String scopeValue);
+    void handleCallback(String userId, String code, String state);
+    Map<String, Object> status(String userId);
+    void disconnect(String userId);
+
+}
+
+/**
+ *   - 生产环境：返回真实OAuth URL
+ *   - 测试环境：返回Mock URL，测试更快
+ *   - 开发环境：返回简化URL，便于调试
+ *   在不同的环境使用同一个接口的不同实现类
+ */
+</file>
+
+<file path="main/java/com/yzr/dida/services/ICurrentUserService.java">
+package com.yzr.dida.services;
+
+public interface ICurrentUserService {
+    String currentUserId();
+}
+</file>
+
+<file path="main/java/com/yzr/dida/utils/AuthUtils.java">
+package com.yzr.dida.utils;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * 处理以下问题
+ *   - 空格 → 会被截断
+ *   - 中文 → 乱码
+ *   - 冒号(:) → URL协议分隔符
+ *   - 问号(?) → 查询参数开始
+ *   - &符号 → 参数分隔符
+ */
+public class AuthUtils {
+    public static String url(String s) {
+        return URLEncoder.encode(s == null ? "" : s, StandardCharsets.UTF_8);
+    }
+}
+</file>
+
+<file path="main/java/com/yzr/dida/utils/EncryptionService.java">
+package com.yzr.dida.utils;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.SecureRandom;
+import java.util.Base64;
+
+@Component
+public class EncryptionService {
+    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
+    private static final int GCM_TAG_BITS = 128;
+    private static final int IV_BYTES = 12;
+
+    private final SecretKey key;
+    private final SecureRandom random = new SecureRandom();
+
+    public EncryptionService(@Value("${security.encryption.key:}") String base64Key) {
+        if (base64Key == null || base64Key.isBlank()) {
+            throw new IllegalStateException("Missing security.encryption.key (base64-encoded 16/24/32 bytes)");
+        }
+        byte[] raw = Base64.getDecoder().decode(base64Key);
+        this.key = new SecretKeySpec(raw, "AES");
+    }
+
+    public String encrypt(String plaintext) {
+        try {
+            byte[] iv = new byte[IV_BYTES];
+            random.nextBytes(iv);
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
+            byte[] ct = cipher.doFinal(plaintext.getBytes());
+            return Base64.getEncoder().encodeToString(iv) + ":" + Base64.getEncoder().encodeToString(ct);
+        } catch (Exception e) {
+            throw new RuntimeException("Encryption failure", e);
+        }
+    }
+
+    public String decrypt(String payload) {
+        try {
+            String[] parts = payload.split(":", 2);
+            byte[] iv = Base64.getDecoder().decode(parts[0]);
+            byte[] ct = Base64.getDecoder().decode(parts[1]);
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
+            byte[] pt = cipher.doFinal(ct);
+            return new String(pt);
+        } catch (Exception e) {
+            throw new RuntimeException("Decryption failure", e);
+        }
+    }
+}
+</file>
+
+<file path="main/java/com/yzr/dida/DidaApplication.java">
+package com.yzr.dida;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+@MapperScan("com.yzr.dida.mappers")
+public class DidaApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DidaApplication.class, args);
+    }
+
+}
+</file>
+
+<file path="main/resources/application.yml">
+spring:
+  application:
+    name: dida
+  datasource:
+    url: jdbc:mysql://139.155.108.161:3306/dida?allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.yzr.dida.entity
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+dida:
+  auth-base: https://dida365.com
+  api-base: https://api.dida365.com
+  client-id: ${DIDA_CLIENT_ID:KqyD70dlxCuQ6w4Jk6}
+  client-secret: ${DIDA_CLIENT_SECRET:&PcR#948!dj7N1)EU4h+NWZCA@1mwnh$}
+# 这个URL必须在滴答清单开发者平台预先注册，否则OAuth授权会被拒绝！
+  redirect-uri: http://localhost:8080/auth/dida/callback
+  oauth:
+    authorize-endpoint: https://dida365.com/oauth/authorize
+    token-endpoint: https://dida365.com/oauth/token
+
+
+server:
+  port: 8080
+</file>
+
+<file path="main/resources/schema.sql">
+CREATE TABLE IF NOT EXISTS authorization_connection (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(128) NOT NULL,
+  provider VARCHAR(32) NOT NULL,
+  scope VARCHAR(16) NOT NULL,
+  access_token_enc TEXT NOT NULL,
+  expires_at TIMESTAMP NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  revoked_at TIMESTAMP NULL,
+  state_nonce VARCHAR(128) NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_user_provider ON authorization_connection(user_id, provider);
+</file>
+
+<file path="test/java/com/yzr/dida/DidaApplicationTests.java">
+package com.yzr.dida;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import static com.yzr.dida.utils.AuthUtils.url;
+
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@SpringBootTest
+class DidaApplicationTests {
+
+//    @Autowired
+//    private IAuthService authService;
+
+//    构造器注入
+//    public DidaApplicationTests(IAuthService authService) {
+//        this.authService = authService;
+//    }
+    @Test
+    void contextLoads() {
+    }
+
+    @Test
+    void hello() {
+        System.out.println("hello");
+    }
+
+}
+</file>
+
+</files>

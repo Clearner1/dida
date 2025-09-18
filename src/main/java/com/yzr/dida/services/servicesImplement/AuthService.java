@@ -31,13 +31,14 @@ public class AuthService implements IAuthService {
         this.http = new RestTemplate();
     }
 
-    @Value("${dida.oauth.client-id:}")
+    //在 yml 文件中配置，使用@Value 来指代是哪一个配置文件中的属性
+    @Value("${dida.client-id:}")
     private String clientId;
 
-    @Value("${dida.oauth.client-secret:}")
+    @Value("${dida.client-secret:}")
     private String clientSecret;
 
-    @Value("${dida.oauth.redirect-uri:}")
+    @Value("${dida.redirect-uri:}")
     private String redirectUri;
 
     @Value("${dida.oauth.authorize-endpoint:https://dida365.com/oauth/authorize}")
@@ -47,14 +48,16 @@ public class AuthService implements IAuthService {
     private String tokenEndpoint;
 
     public String buildAuthorizeUrl(String userId, String scopeValue) {
+//        滴答 API 需要生成一个恒定的 state
         String state = UUID.randomUUID().toString();
         String didaScope = scopeValue;
-        // Persist pending state
+        // 向数据库插入一条关于谁请求了读写权限的一条记录
         authConnectionService.upsertState(userId, "dida", didaScope, state);
 
         String scope = url(didaScope);
         String cid = url(clientId);
         String ru = url(redirectUri);
+//      https://dida365.com/oauth/authorize?scope=read&client_id=client_id&state=state&redirect_uri=redirect_uri&response_type=code
         return authorizeEndpoint + "?scope=" + scope +
                 "&client_id=" + cid +
                 "&state=" + state +
