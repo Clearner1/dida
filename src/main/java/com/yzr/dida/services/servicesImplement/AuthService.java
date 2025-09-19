@@ -1,6 +1,6 @@
 package com.yzr.dida.services.servicesImplement;
 
-import com.yzr.dida.utils.EncryptionService;
+//import com.yzr.dida.utils.EncryptionService;
 import com.yzr.dida.entity.AuthorizationConnectionDO;
 import com.yzr.dida.services.IAuthService;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,13 +21,13 @@ import static com.yzr.dida.utils.AuthUtils.url;
 public class AuthService implements IAuthService {
 
     private final AuthorizationConnectionService authConnectionService;
-    private final EncryptionService encryptionService;
+//    private final EncryptionService encryptionService;
     private final RestTemplate http;
 
-    public AuthService(AuthorizationConnectionService authConnectionService,
-                       EncryptionService encryptionService) {
+    public AuthService(AuthorizationConnectionService authConnectionService
+                       /*EncryptionService encryptionService*/) {
         this.authConnectionService = authConnectionService;
-        this.encryptionService = encryptionService;
+//        this.encryptionService = encryptionService;
         this.http = new RestTemplate();
     }
 

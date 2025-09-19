@@ -32,7 +32,41 @@ dida:
 
 server:
   port: 8080
+  address: 0.0.0.0
 
 security:
   encryption:
     key: ${ENCRYPTION_KEY:SGVsbG9Xb3JsZDEyMzQ1Ng==}
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+    enable-swagger-models: true
+    enable-document-manage: true
+    swagger-model-name: 实体类列表
+  openapi:
+    title: 滴答清单开放API接口文档
+    description: |
+      ## 滴答清单开放API集成平台
+      
+      本平台提供滴答清单官方API的集成服务，支持：
+      - **OAuth2认证授权**
+      - **项目管理** (创建、查询、更新、删除)
+      - **任务管理** (创建、查询、更新、删除、完成)
+      
+      ### 使用说明
+      1. 首先通过认证授权接口获取访问令牌
+      2. 使用Bearer Token调用相应的API接口
+      3. 所有接口都遵循RESTful规范
+      
+      ### API Base URL
+      - 本地开发: `http://localhost:8080`
+      - 局域网访问: `http://[本机IP]:8080`
+    email: yzremail@163.com
+    concat: YZR开发团队
+    url: https://developer.dida365.com/
+    version: v1.0
+    license: Apache 2.0
+    license-url: https://www.apache.org/licenses/LICENSE-2.0
+    terms-of-service-url: https://developer.dida365.com/terms
