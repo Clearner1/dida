@@ -11,4 +11,3 @@ CREATE TABLE IF NOT EXISTS authorization_connection (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_user_provider ON authorization_connection(user_id, provider);
-

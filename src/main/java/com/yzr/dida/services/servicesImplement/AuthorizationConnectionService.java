@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.yzr.dida.mappers.AuthorizationConnectionMapper;
 import com.yzr.dida.entity.AuthorizationConnectionDO;
+import com.yzr.dida.utils.EncryptionService;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -26,6 +27,7 @@ public class AuthorizationConnectionService {
         qw.eq("user_id", userId).eq("provider", provider);
         AuthorizationConnectionDO existing = mapper.selectOne(qw);
         if (existing == null) {
+//          如果不存在则插入一个新数据
             AuthorizationConnectionDO rec = new AuthorizationConnectionDO();
             String id = UUID.randomUUID().toString();
             rec.setId(id);
@@ -40,14 +42,16 @@ public class AuthorizationConnectionService {
             mapper.insert(rec);
             return id;
         } else {
+//            如果存在，则清空已有数据
             UpdateWrapper<AuthorizationConnectionDO> uw = new UpdateWrapper<>();
-            uw.eq("user_id", userId).eq("provider", provider)
-              .set("scope", scopeKey(scope))
-              .set("access_token_enc", null)
-              .set("expires_at", null)
-              .set("revoked_at", null)
-              .set("state_nonce", stateNonce);
-            mapper.update(null, uw);
+            uw.eq("id", existing.getId());
+            AuthorizationConnectionDO clean = new AuthorizationConnectionDO();
+            clean.setScope(scopeKey(scope));
+            clean.setAccessTokenEnc(null);
+            clean.setExpiresAt(null);
+            clean.setRevokedAt(null);
+            clean.setCreatedAt(null);
+            mapper.update(clean, uw);
             return existing.getId();
         }
     }
@@ -96,5 +100,32 @@ public class AuthorizationConnectionService {
 
     public AuthorizationConnectionDO.Scope getScopeEnum(String scopeString) {
         return "read_write".equalsIgnoreCase(scopeString) ? AuthorizationConnectionDO.Scope.READ_WRITE : AuthorizationConnectionDO.Scope.READ;
+    }
+
+    /**
+     * 获取有效 token
+     * @param userId 用户 ID
+     * @param provider 提方
+     * @return 有效的 token
+     */
+    public String getValidAccessToken(String userId, String provider) {
+        QueryWrapper<AuthorizationConnectionDO> qw = new QueryWrapper<>();
+        qw.select("access_token_enc", "expires_at")
+          .eq("user_id", userId)
+          .eq("provider", provider)
+          .isNotNull("access_token_enc")
+          .last("LIMIT 1");
+        
+        AuthorizationConnectionDO rec = mapper.selectOne(qw);
+        if (rec == null || rec.getAccessTokenEnc() == null) {
+            return null;
+        }
+        
+        // 检查是否过期
+        if (rec.getExpiresAt() != null && rec.getExpiresAt().isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
+            return null;
+        }
+        
+        return rec.getAccessTokenEnc();
     }
 }

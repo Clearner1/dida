@@ -83,7 +83,7 @@ public class AuthController {
     public ResponseEntity<Void> callback(@RequestParam("code") String code,
                                          @RequestParam("state") String state) {
         String userId = currentUserService.currentUserId();
-        authService.handleCallback(userId, code, state);
+            authService.handleCallback(userId, code, state);
         MultiValueMap<String, String> headers = new HttpHeaders();
         headers.add(HttpHeaders.LOCATION, "/settings/integrations?dida=connected");
         return new ResponseEntity<>(headers, HttpStatus.FOUND);

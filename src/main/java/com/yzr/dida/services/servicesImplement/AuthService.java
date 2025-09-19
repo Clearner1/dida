@@ -49,7 +49,7 @@ public class AuthService implements IAuthService {
 
     public String buildAuthorizeUrl(String userId, String scopeValue) {
 //        滴答 API 需要生成一个恒定的 state
-        String state = UUID.randomUUID().toString();
+        final String state = "STATE";
         String didaScope = scopeValue;
         // 向数据库插入一条关于谁请求了读写权限的一条记录
         authConnectionService.upsertState(userId, "dida", didaScope, state);
@@ -87,7 +87,7 @@ public class AuthService implements IAuthService {
             throw new IllegalStateException("Token exchange failed");
         }
         String accessToken = String.valueOf(resp.get("access_token"));
-        String enc = encryptionService.encrypt(accessToken);
+//        String enc = encryptionService.encrypt(accessToken);
 
         Instant expiresAt = null;
         if (resp.containsKey("expires_in")) {
@@ -97,7 +97,7 @@ public class AuthService implements IAuthService {
             } catch (NumberFormatException ignore) { }
         }
 
-        authConnectionService.saveToken(userId, "dida", scopeKey(pendingScopeEnum), enc, expiresAt);
+        authConnectionService.saveToken(userId, "dida", scopeKey(pendingScopeEnum), accessToken, expiresAt);
     }
 
     public Map<String, Object> status(String userId) {
